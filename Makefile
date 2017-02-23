@@ -11,7 +11,7 @@ all: benchmark
 install: all
 
 benchmark: benchmark.o curly.o
-	${CXX} ${CXXFLAGS} -o benchmark benchmark.o curly.o -lboost_program_options -lcurl
+	${CXX} ${CXXFLAGS} -o benchmark benchmark.o curly.o -lboost_program_options -lcurl -ljsoncpp
 
 libcurly.so: curly.o
 	${CXX} ${CXXFLAGS} -shared -Wl,-soname,libcurly.so -o libcurly.so curly.o
