@@ -47,6 +47,8 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
         curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L);
         curl_easy_setopt(handle, CURLOPT_TIMEOUT, 5);
 
+        curl_easy_setopt(handle, CURLOPT_SSL_SESSIONID_CACHE, 1);
+
         /* send all data to this function  */
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 
