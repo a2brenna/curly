@@ -64,7 +64,7 @@ Curl_Instance::~Curl_Instance() {
     curl_easy_cleanup(_curl_handle);
 }
 
-Json::Value Curl_Instance::get_json() const{
+Json::Value Curl_Instance::get_json(){
     Json::Value data;
     Json::Reader reader;
 

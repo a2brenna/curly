@@ -18,7 +18,7 @@ class Curl_Instance{
     public:
         Curl_Instance(const std::string &url, const size_t &recv_buffer_size);
         ~Curl_Instance();
-        Json::Value get_json() const;
+        Json::Value get_json();
 
     private:
         CURL *_curl_handle;
