@@ -8,8 +8,8 @@
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     const size_t realsize = size * nmemb;
 
-    struct MemoryStruct *mem = [](const size_t realsize, void *userp){
-		struct MemoryStruct *mem = (struct MemoryStruct *)userp;
+    struct CMemoryStruct *mem = [](const size_t realsize, void *userp){
+		struct CMemoryStruct *mem = (struct CMemoryStruct *)userp;
 		if(mem->cursor + realsize >= mem->size){
 			mem->size = std::max(mem->cursor + realsize + 1, mem->size * 2);
 			mem->memory = (char *)realloc(mem->memory, mem->size);
@@ -28,7 +28,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 
 Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size){
 	_buffer = [](const size_t &recv_buffer_size){
-		struct MemoryStruct buffer;
+		struct CMemoryStruct buffer;
 		buffer.memory = (char *)malloc(recv_buffer_size);
 		assert(buffer.memory);
 
@@ -37,7 +37,7 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
 		return buffer;
 	}(recv_buffer_size);
 
-    _curl_handle = [](const std::string &url, struct MemoryStruct *buffer) {
+    _curl_handle = [](const std::string &url, struct CMemoryStruct *buffer) {
         auto handle = curl_easy_init();
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
@@ -64,7 +64,7 @@ Curl_Instance::~Curl_Instance() {
     curl_easy_cleanup(_curl_handle);
 }
 
-Json::Value Curl_Instance::get_json() {
+Json::Value Curl_Instance::get_json() const{
     Json::Value data;
     Json::Reader reader;
 
