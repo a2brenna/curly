@@ -68,6 +68,10 @@ Json::Value Curl_Instance::get_json(){
     Json::Value data;
     Json::Reader reader;
 
+    //reset _buffer
+    _buffer.memory[0] = 0;
+    _buffer.cursor = 0;
+
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
 
@@ -81,9 +85,5 @@ Json::Value Curl_Instance::get_json(){
     }
 
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
-
-    //reset _buffer
-    _buffer.memory[0] = 0;
-    _buffer.cursor = 0;
     return data;
 }
