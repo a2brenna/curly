@@ -103,3 +103,33 @@ Json::Value Curl_Instance::get_json(){
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
     return data;
 }
+
+size_t Curl_Instance::get(char *target, const size_t &target_size){
+    const auto old_buffer = _buffer;
+    try{
+        _buffer.resizable = false;
+        _buffer.memory = target;
+        _buffer.cursor = 0;
+        _buffer.size = target_size;
+
+        //fill up _buffer
+        const CURLcode res = curl_easy_perform(_curl_handle);
+
+        if(res != CURLE_OK){
+            const auto response_code = [](CURL *handle){
+                long response_code;
+                curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+                return response_code;
+            }(_curl_handle);
+            throw Curl_Error();
+        }
+
+        const size_t bytes_fetched = _buffer.cursor;
+        _buffer = old_buffer;
+        return bytes_fetched;
+    }
+    catch(...){
+        _buffer = old_buffer;
+        throw Curl_Error();
+    }
+}
