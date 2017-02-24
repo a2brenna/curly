@@ -9,6 +9,7 @@ struct CMemoryStruct {
     char *memory;
     size_t size;
     size_t cursor;
+    bool resizable;
 };
 
 class Curl_Error {};

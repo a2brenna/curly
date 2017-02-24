@@ -11,9 +11,18 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     struct CMemoryStruct *mem = [](const size_t realsize, void *userp){
 		struct CMemoryStruct *mem = (struct CMemoryStruct *)userp;
 		if(mem->cursor + realsize >= mem->size){
-			mem->size = std::max(mem->cursor + realsize + 1, mem->size * 2);
-			mem->memory = (char *)realloc(mem->memory, mem->size);
-			assert(mem->memory);
+            if(mem->resizable){
+                //TODO: rejigger this so it only works in powers of 2
+                mem->size = std::max(mem->cursor + realsize + 1, mem->size * 2);
+                mem->memory = (char *)realloc(mem->memory, mem->size);
+                assert(mem->memory);
+            }
+            else{
+                //TODO: Investigate error handling
+                //Cannot throw from here? This is executed by libcurl library code which is straight c...
+                //Maybe should return 0;
+                assert(false);
+            }
 		}
 		return mem;
 
@@ -40,6 +49,7 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
 
 		buffer.size = recv_buffer_size;
 		buffer.cursor = 0;
+        buffer.resizable = true;
 		return buffer;
 	}(recv_buffer_size);
 
