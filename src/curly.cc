@@ -29,8 +29,14 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size){
 	_buffer = [](const size_t &recv_buffer_size){
 		struct CMemoryStruct buffer;
-		buffer.memory = (char *)malloc(recv_buffer_size);
-		assert(buffer.memory);
+
+        if(recv_buffer_size > 0){
+            buffer.memory = (char *)malloc(recv_buffer_size);
+            assert(buffer.memory);
+        }
+        else{
+            buffer.memory = nullptr;
+        }
 
 		buffer.size = recv_buffer_size;
 		buffer.cursor = 0;
