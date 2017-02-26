@@ -4,12 +4,22 @@
 #include <jsoncpp/json/value.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
+#include <chrono>
+
+namespace curly{
+
+extern bool *PROFILE;
 
 struct CMemoryStruct {
     char *memory;
     size_t size;
     size_t cursor;
     bool resizable;
+};
+
+struct Perf_Data {
+    std::chrono::high_resolution_clock::time_point request_start = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(0));
+    std::chrono::high_resolution_clock::time_point request_end = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(0));
 };
 
 class Curl_Error {};
@@ -25,6 +35,9 @@ class Curl_Instance{
     private:
         CURL *_curl_handle;
         CMemoryStruct _buffer;
+        struct Perf_Data _perf;
+
+};
 
 };
 

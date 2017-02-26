@@ -5,6 +5,11 @@
 #include <string.h>
 #include <jsoncpp/json/reader.h>
 
+namespace curly {
+
+bool _PROFILE = false; //Prevent nullptr dereference if we neglect to set this up
+bool *PROFILE = &_PROFILE;
+
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     const size_t realsize = size * nmemb;
 
@@ -89,7 +94,13 @@ Json::Value Curl_Instance::get_json(){
     _buffer.cursor = 0;
 
     //fill up _buffer
+    if(*PROFILE){
+        _perf.request_start = std::chrono::high_resolution_clock::now();
+    }
     const CURLcode res = curl_easy_perform(_curl_handle);
+    if(*PROFILE){
+        _perf.request_end = std::chrono::high_resolution_clock::now();
+    }
 
     if(res != CURLE_OK){
         const auto response_code = [](CURL *handle){
@@ -113,7 +124,13 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
         _buffer.size = target_size;
 
         //fill up _buffer
+        if(*PROFILE){
+            _perf.request_start = std::chrono::high_resolution_clock::now();
+        }
         const CURLcode res = curl_easy_perform(_curl_handle);
+        if(*PROFILE){
+            _perf.request_end = std::chrono::high_resolution_clock::now();
+        }
 
         if(res != CURLE_OK){
             const auto response_code = [](CURL *handle){
@@ -132,4 +149,6 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
         _buffer = old_buffer;
         throw Curl_Error();
     }
+}
+
 }
