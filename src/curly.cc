@@ -165,9 +165,7 @@ struct Perf_Data Curl_Instance::perf_data() const{
 
 std::string Curl_Instance::serialized_perf_data() const{
     std::string s =
-        "curl_request_start " + std::to_string(_perf.request_start.time_since_epoch().count())
-        +
-        " curl_request_end " + std::to_string(_perf.request_start.time_since_epoch().count());
+        "curl_request " + std::to_string((_perf.request_end - _perf.request_start).count());
     return s;
 }
 
