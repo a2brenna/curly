@@ -8,7 +8,7 @@
 
 namespace curly{
 
-extern bool *PROFILE;
+extern bool PROFILE;
 
 struct CMemoryStruct {
     char *memory;
@@ -27,15 +27,18 @@ class Curl_Error {};
 class Curl_Instance{
 
     public:
-        Curl_Instance(const std::string &url, const size_t &recv_buffer_size);
+        Curl_Instance(const std::string &url, const size_t &recv_buffer_size, bool *PROFILE_SWITCH);
         ~Curl_Instance();
         Json::Value get_json();
         size_t get(char *target, const size_t &target_size);
+        struct Perf_Data perf_data() const;
+        std::string serialized_perf_data() const;
 
     private:
         CURL *_curl_handle;
         CMemoryStruct _buffer;
         struct Perf_Data _perf;
+        bool *_PROFILE;
 
 };
 

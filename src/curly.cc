@@ -7,8 +7,7 @@
 
 namespace curly {
 
-bool _PROFILE = false; //Prevent nullptr dereference if we neglect to set this up
-bool *PROFILE = &_PROFILE;
+bool PROFILE = false; //Prevent nullptr dereference if we neglect to set this up
 
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     const size_t realsize = size * nmemb;
@@ -40,7 +39,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
-Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size){
+Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size, bool *PROFILE_SWITCH){
 	_buffer = [](const size_t &recv_buffer_size){
 		struct CMemoryStruct buffer;
 
@@ -78,6 +77,15 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
         return handle;
     }(url, &_buffer);
 
+    _PROFILE = [](bool *PROFILE_SWITCH){
+        if(PROFILE_SWITCH == nullptr){
+            return &PROFILE;
+        }
+        else{
+            return PROFILE_SWITCH;
+        }
+    }(PROFILE_SWITCH);
+
 }
 
 Curl_Instance::~Curl_Instance() {
@@ -94,11 +102,11 @@ Json::Value Curl_Instance::get_json(){
     _buffer.cursor = 0;
 
     //fill up _buffer
-    if(*PROFILE){
+    if(*_PROFILE){
         _perf.request_start = std::chrono::high_resolution_clock::now();
     }
     const CURLcode res = curl_easy_perform(_curl_handle);
-    if(*PROFILE){
+    if(*_PROFILE){
         _perf.request_end = std::chrono::high_resolution_clock::now();
     }
 
@@ -124,11 +132,11 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
         _buffer.size = target_size;
 
         //fill up _buffer
-        if(*PROFILE){
+        if(*_PROFILE){
             _perf.request_start = std::chrono::high_resolution_clock::now();
         }
         const CURLcode res = curl_easy_perform(_curl_handle);
-        if(*PROFILE){
+        if(*_PROFILE){
             _perf.request_end = std::chrono::high_resolution_clock::now();
         }
 
@@ -149,6 +157,18 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
         _buffer = old_buffer;
         throw Curl_Error();
     }
+}
+
+struct Perf_Data Curl_Instance::perf_data() const{
+    return _perf;
+}
+
+std::string Curl_Instance::serialized_perf_data() const{
+    std::string s =
+        "curl_request_start " + std::to_string(_perf.request_start.time_since_epoch().count())
+        +
+        " curl_request_end " + std::to_string(_perf.request_start.time_since_epoch().count());
+    return s;
 }
 
 }
