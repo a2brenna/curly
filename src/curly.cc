@@ -159,6 +159,57 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
     }
 }
 
+size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
+    const auto old_buffer = _buffer;
+    try{
+        _buffer.resizable = false;
+        _buffer.memory = target;
+        _buffer.cursor = 0;
+        _buffer.size = target_size;
+
+		const struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
+			struct curl_slist *http_headers = nullptr;
+			for(const auto &h: headers){
+				const std::string header = h.first + ": " + h.second;
+				http_headers = curl_slist_append(http_headers, header.c_str());
+			}
+			return http_headers;
+		}(headers);
+
+		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
+
+		curl_easy_setopt(_curl_handle, CURLOPT_POST, 1L);
+		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDS, post_parameters.c_str());
+		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
+
+        //fill up _buffer
+        if(*_PROFILE){
+            _perf.request_start = std::chrono::high_resolution_clock::now();
+        }
+        const CURLcode res = curl_easy_perform(_curl_handle);
+        if(*_PROFILE){
+            _perf.request_end = std::chrono::high_resolution_clock::now();
+        }
+
+        if(res != CURLE_OK){
+            const auto response_code = [](CURL *handle){
+                long response_code;
+                curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+                return response_code;
+            }(_curl_handle);
+            throw Curl_Error(response_code, res);
+        }
+
+        const size_t bytes_fetched = _buffer.cursor;
+        _buffer = old_buffer;
+        return bytes_fetched;
+    }
+    catch(...){
+        _buffer = old_buffer;
+        throw;
+    }
+}
+
 struct Perf_Data Curl_Instance::perf_data() const{
     return _perf;
 }
