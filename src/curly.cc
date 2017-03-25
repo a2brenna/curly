@@ -116,7 +116,7 @@ Json::Value Curl_Instance::get_json(){
             curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
             return response_code;
         }(_curl_handle);
-        throw Curl_Error();
+        throw Curl_Error(response_code, res);
     }
 
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
@@ -146,7 +146,7 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
                 curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
                 return response_code;
             }(_curl_handle);
-            throw Curl_Error();
+            throw Curl_Error(response_code, res);
         }
 
         const size_t bytes_fetched = _buffer.cursor;
@@ -155,7 +155,7 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
     }
     catch(...){
         _buffer = old_buffer;
-        throw Curl_Error();
+        throw;
     }
 }
 
@@ -167,6 +167,11 @@ std::string Curl_Instance::serialized_perf_data() const{
     std::string s =
         "curl_request " + std::to_string((_perf.request_end - _perf.request_start).count());
     return s;
+}
+
+Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
+    _response_code = response_code;
+    _res = res;
 }
 
 }

@@ -22,7 +22,16 @@ struct Perf_Data {
     std::chrono::high_resolution_clock::time_point request_end = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(0));
 };
 
-class Curl_Error {};
+class Curl_Error {
+
+    public:
+        Curl_Error(const long &response_code, const CURLcode &res);
+
+    private:
+        long _response_code;
+        CURLcode _res;
+
+};
 
 class Curl_Instance{
 
