@@ -26,6 +26,9 @@ class Curl_Error {
 
     public:
         Curl_Error(const long &response_code, const CURLcode &res);
+        long response_code() const;
+        CURLcode res() const;
+        std::string str() const;
 
     private:
         long _response_code;

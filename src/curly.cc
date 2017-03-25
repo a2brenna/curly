@@ -225,4 +225,16 @@ Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
     _res = res;
 }
 
+long Curl_Error::response_code() const{
+    return _response_code;
+}
+
+CURLcode Curl_Error::res() const{
+    return _res;
+}
+
+std::string Curl_Error::str() const{
+    return std::string(curl_easy_strerror(_res));
+}
+
 }
