@@ -44,6 +44,7 @@ class Curl_Instance{
         Json::Value get_json();
         size_t get(char *target, const size_t &target_size);
         size_t post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size);
+        Json::Value post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters);
         struct Perf_Data perf_data() const;
         std::string serialized_perf_data() const;
 
