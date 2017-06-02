@@ -123,13 +123,24 @@ Json::Value Curl_Instance::get_json(){
     return data;
 }
 
-size_t Curl_Instance::get(char *target, const size_t &target_size){
+size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
     try{
         _buffer.resizable = false;
         _buffer.memory = target;
         _buffer.cursor = 0;
         _buffer.size = target_size;
+
+		const struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
+			struct curl_slist *http_headers = nullptr;
+			for(const auto &h: headers){
+				const std::string header = h.first + ": " + h.second;
+				http_headers = curl_slist_append(http_headers, header.c_str());
+			}
+			return http_headers;
+		}(headers);
+
+		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
 
         //fill up _buffer
         if(*_PROFILE){
@@ -157,6 +168,11 @@ size_t Curl_Instance::get(char *target, const size_t &target_size){
         _buffer = old_buffer;
         throw;
     }
+}
+
+size_t Curl_Instance::get(char *target, const size_t &target_size){
+    const std::vector<std::pair< std::string, std::string>> headers;
+    return get(headers, target, target_size);
 }
 
 size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
