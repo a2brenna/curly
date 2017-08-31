@@ -7,8 +7,6 @@
 
 namespace curly {
 
-bool PROFILE = false; //Prevent nullptr dereference if we neglect to set this up
-
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     const size_t realsize = size * nmemb;
 
@@ -39,7 +37,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
-Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size, bool *PROFILE_SWITCH){
+Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size){
 	_buffer = [](const size_t &recv_buffer_size){
 		struct CMemoryStruct buffer;
 
@@ -77,15 +75,6 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
         return handle;
     }(url, &_buffer);
 
-    _PROFILE = [](bool *PROFILE_SWITCH){
-        if(PROFILE_SWITCH == nullptr){
-            return &PROFILE;
-        }
-        else{
-            return PROFILE_SWITCH;
-        }
-    }(PROFILE_SWITCH);
-
 }
 
 Curl_Instance::~Curl_Instance() {
@@ -102,13 +91,7 @@ Json::Value Curl_Instance::get_json(){
     _buffer.cursor = 0;
 
     //fill up _buffer
-    if(*_PROFILE){
-        _perf.request_start = std::chrono::high_resolution_clock::now();
-    }
     const CURLcode res = curl_easy_perform(_curl_handle);
-    if(*_PROFILE){
-        _perf.request_end = std::chrono::high_resolution_clock::now();
-    }
 
     if(res != CURLE_OK){
         const auto response_code = [](CURL *handle){
@@ -143,13 +126,7 @@ size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>>
 		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
 
         //fill up _buffer
-        if(*_PROFILE){
-            _perf.request_start = std::chrono::high_resolution_clock::now();
-        }
         const CURLcode res = curl_easy_perform(_curl_handle);
-        if(*_PROFILE){
-            _perf.request_end = std::chrono::high_resolution_clock::now();
-        }
 
         if(res != CURLE_OK){
             const auto response_code = [](CURL *handle){
@@ -199,13 +176,7 @@ size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>
 		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
 
         //fill up _buffer
-        if(*_PROFILE){
-            _perf.request_start = std::chrono::high_resolution_clock::now();
-        }
         const CURLcode res = curl_easy_perform(_curl_handle);
-        if(*_PROFILE){
-            _perf.request_end = std::chrono::high_resolution_clock::now();
-        }
 
         if(res != CURLE_OK){
             const auto response_code = [](CURL *handle){
@@ -250,13 +221,7 @@ Json::Value Curl_Instance::post_json(const std::vector<std::pair<std::string, st
     curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
 
     //fill up _buffer
-    if(*_PROFILE){
-        _perf.request_start = std::chrono::high_resolution_clock::now();
-    }
     const CURLcode res = curl_easy_perform(_curl_handle);
-    if(*_PROFILE){
-        _perf.request_end = std::chrono::high_resolution_clock::now();
-    }
 
     if(res != CURLE_OK){
         const auto response_code = [](CURL *handle){
@@ -269,16 +234,6 @@ Json::Value Curl_Instance::post_json(const std::vector<std::pair<std::string, st
 
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
     return data;
-}
-
-struct Perf_Data Curl_Instance::perf_data() const{
-    return _perf;
-}
-
-std::string Curl_Instance::serialized_perf_data() const{
-    std::string s =
-        "curl_request " + std::to_string((_perf.request_end - _perf.request_start).count());
-    return s;
 }
 
 Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){

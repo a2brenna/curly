@@ -6,7 +6,7 @@
 int main(){
     std::cout << "Starting Benchmark..." << std::endl;
 
-    curly::Curl_Instance test("https://csclub.uwaterloo.ca", 16384, nullptr);
+    curly::Curl_Instance test("https://csclub.uwaterloo.ca", 16384);
     //TODO: Test with zero length buffer
 
     for(size_t i = 0; i < 50; i++){
