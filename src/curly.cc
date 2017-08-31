@@ -60,7 +60,6 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
         curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1);
         curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L);
         curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L);
         curl_easy_setopt(handle, CURLOPT_TIMEOUT, 60);
@@ -82,7 +81,7 @@ Curl_Instance::~Curl_Instance() {
     curl_easy_cleanup(_curl_handle);
 }
 
-Json::Value Curl_Instance::get_json(){
+std::pair<uint32_t, Json::Value> Curl_Instance::get_json(){
     Json::Value data;
     Json::Reader reader;
 
@@ -92,18 +91,19 @@ Json::Value Curl_Instance::get_json(){
 
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
-
-    if(res != CURLE_OK){
-        const auto response_code = [](CURL *handle){
-            long response_code;
-            curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-            return response_code;
-        }(_curl_handle);
-        throw Curl_Error(response_code, res);
-    }
+    const uint32_t response_code = [](CURL *handle){
+        long response_code;
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+        if(response_code >= 0){
+            return (uint32_t)response_code;
+        }
+        else{
+            assert(false);
+        }
+    }(_curl_handle);
 
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
-    return data;
+    return std::pair<uint32_t, Json::Value>(response_code, data);
 }
 
 size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
@@ -197,7 +197,7 @@ size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>
     }
 }
 
-Json::Value Curl_Instance::post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
+std::pair<uint32_t, Json::Value> Curl_Instance::post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
     Json::Value data;
     Json::Reader reader;
 
@@ -215,7 +215,6 @@ Json::Value Curl_Instance::post_json(const std::vector<std::pair<std::string, st
     }(headers);
 
     curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
-
     curl_easy_setopt(_curl_handle, CURLOPT_POST, 1L);
     curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDS, post_parameters.c_str());
     curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
@@ -223,17 +222,19 @@ Json::Value Curl_Instance::post_json(const std::vector<std::pair<std::string, st
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
 
-    if(res != CURLE_OK){
-        const auto response_code = [](CURL *handle){
-            long response_code;
-            curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-            return response_code;
-        }(_curl_handle);
-        throw Curl_Error(response_code, res);
-    }
+    const uint32_t response_code = [](CURL *handle){
+        long response_code;
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+        if(response_code >= 0){
+            return (uint32_t)response_code;
+        }
+        else{
+            assert(false);
+        }
+    }(_curl_handle);
 
     reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
-    return data;
+    return std::pair<uint32_t, Json::Value>(response_code, data);
 }
 
 Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){

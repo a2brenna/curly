@@ -34,11 +34,13 @@ class Curl_Instance{
     public:
         Curl_Instance(const std::string &url, const size_t &recv_buffer_size);
         ~Curl_Instance();
-        Json::Value get_json();
+
+        std::pair<uint32_t, Json::Value> get_json();
+        std::pair<uint32_t, Json::Value> post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters);
+
         size_t get(char *target, const size_t &target_size);
         size_t get(const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size);
         size_t post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size);
-        Json::Value post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters);
 
     private:
         CURL *_curl_handle;
