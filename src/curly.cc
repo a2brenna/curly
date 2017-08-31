@@ -81,10 +81,7 @@ Curl_Instance::~Curl_Instance() {
     curl_easy_cleanup(_curl_handle);
 }
 
-std::pair<uint32_t, Json::Value> Curl_Instance::get_json(){
-    Json::Value data;
-    Json::Reader reader;
-
+std::pair<uint32_t, std::string> Curl_Instance::get(){
     //reset _buffer
     _buffer.memory[0] = 0;
     _buffer.cursor = 0;
@@ -102,8 +99,7 @@ std::pair<uint32_t, Json::Value> Curl_Instance::get_json(){
         }
     }(_curl_handle);
 
-    reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
-    return std::pair<uint32_t, Json::Value>(response_code, data);
+    return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
 size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
@@ -197,10 +193,7 @@ size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>
     }
 }
 
-std::pair<uint32_t, Json::Value> Curl_Instance::post_json(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
-    Json::Value data;
-    Json::Reader reader;
-
+std::pair<uint32_t, std::string> Curl_Instance::post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
     //reset _buffer
     _buffer.memory[0] = 0;
     _buffer.cursor = 0;
@@ -233,8 +226,7 @@ std::pair<uint32_t, Json::Value> Curl_Instance::post_json(const std::vector<std:
         }
     }(_curl_handle);
 
-    reader.parse(&(_buffer.memory[0]), &(_buffer.memory[_buffer.cursor]), data, false);
-    return std::pair<uint32_t, Json::Value>(response_code, data);
+    return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
 Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
