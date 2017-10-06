@@ -37,7 +37,7 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
-Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_size){
+Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 	_buffer = [](const size_t &recv_buffer_size){
 		struct CMemoryStruct buffer;
 
@@ -55,9 +55,8 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
 		return buffer;
 	}(recv_buffer_size);
 
-    _curl_handle = [](const std::string &url, struct CMemoryStruct *buffer) {
+    _curl_handle = [](struct CMemoryStruct *buffer) {
         auto handle = curl_easy_init();
-        curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
         curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
         curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L);
@@ -72,7 +71,7 @@ Curl_Instance::Curl_Instance(const std::string &url, const size_t &recv_buffer_s
         /* we pass our 'chunk' struct to the callback function */
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)(buffer));
         return handle;
-    }(url, &_buffer);
+    }(&_buffer);
 
 }
 
@@ -81,10 +80,13 @@ Curl_Instance::~Curl_Instance() {
     curl_easy_cleanup(_curl_handle);
 }
 
-std::pair<uint32_t, std::string> Curl_Instance::get(){
+std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){
     //reset _buffer
     _buffer.memory[0] = 0;
     _buffer.cursor = 0;
+
+    //set url
+    curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
@@ -102,13 +104,16 @@ std::pair<uint32_t, std::string> Curl_Instance::get(){
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
-size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
+size_t Curl_Instance::get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
     try{
         _buffer.resizable = false;
         _buffer.memory = target;
         _buffer.cursor = 0;
         _buffer.size = target_size;
+
+        //set url
+        curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
 		const struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
 			struct curl_slist *http_headers = nullptr;
@@ -143,18 +148,21 @@ size_t Curl_Instance::get(const std::vector<std::pair<std::string, std::string>>
     }
 }
 
-size_t Curl_Instance::get(char *target, const size_t &target_size){
+size_t Curl_Instance::get(const std::string &url, char *target, const size_t &target_size){
     const std::vector<std::pair< std::string, std::string>> headers;
-    return get(headers, target, target_size);
+    return get(url, headers, target, target_size);
 }
 
-size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
+size_t Curl_Instance::post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
     try{
         _buffer.resizable = false;
         _buffer.memory = target;
         _buffer.cursor = 0;
         _buffer.size = target_size;
+
+        //set url
+        curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
 		const struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
 			struct curl_slist *http_headers = nullptr;
@@ -193,7 +201,7 @@ size_t Curl_Instance::post(const std::vector<std::pair<std::string, std::string>
     }
 }
 
-std::pair<uint32_t, std::string> Curl_Instance::post(const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
+std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
     //reset _buffer
     _buffer.memory[0] = 0;
     _buffer.cursor = 0;
@@ -206,6 +214,9 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::vector<std::pair
         }
         return http_headers;
     }(headers);
+
+    //set url
+    curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
     curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
     curl_easy_setopt(_curl_handle, CURLOPT_POST, 1L);

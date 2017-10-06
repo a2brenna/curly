@@ -6,12 +6,12 @@
 int main(){
     std::cout << "Starting Benchmark..." << std::endl;
 
-    curly::Curl_Instance test("https://csclub.uwaterloo.ca", 16384);
+    curly::Curl_Instance test(16384);
     //TODO: Test with zero length buffer
 
     for(size_t i = 0; i < 50; i++){
         const auto start_time = std::chrono::high_resolution_clock::now();
-        const auto data = test.get();
+        const auto data = test.get("https://csclub.uwaterloo.ca");
         const auto end_time = std::chrono::high_resolution_clock::now();
         std::cout << "Trial " << i << " Elapsed " << (end_time - start_time).count() << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(1));
