@@ -104,6 +104,42 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
+std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers){
+    //reset _buffer
+    _buffer.memory[0] = 0;
+    _buffer.cursor = 0;
+
+    //set url
+    curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
+
+    //set headers
+    const struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
+        struct curl_slist *http_headers = nullptr;
+        for(const auto &h: headers){
+            const std::string header = h.first + ": " + h.second;
+            http_headers = curl_slist_append(http_headers, header.c_str());
+        }
+        return http_headers;
+    }(headers);
+
+    curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
+
+    //fill up _buffer
+    const CURLcode res = curl_easy_perform(_curl_handle);
+    const uint32_t response_code = [](CURL *handle){
+        long response_code;
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+        if(response_code >= 0){
+            return (uint32_t)response_code;
+        }
+        else{
+            assert(false);
+        }
+    }(_curl_handle);
+
+    return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
+}
+
 size_t Curl_Instance::get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
     try{

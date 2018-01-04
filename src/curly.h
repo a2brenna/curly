@@ -37,6 +37,7 @@ class Curl_Instance{
         ~Curl_Instance();
 
         std::pair<uint32_t, std::string> get(const std::string &url);
+        std::pair<uint32_t, std::string> get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers);
         std::pair<uint32_t, std::string> post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters);
 
         size_t get(const std::string &url, char *target, const size_t &target_size);
