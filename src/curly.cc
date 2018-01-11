@@ -75,6 +75,10 @@ Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 
 }
 
+void Curl_Instance::set_timeout(const size_t &seconds){
+    curl_easy_setopt(_curl_handle, CURLOPT_TIMEOUT, seconds);
+}
+
 Curl_Instance::~Curl_Instance() {
     free(_buffer.memory);
     curl_easy_cleanup(_curl_handle);

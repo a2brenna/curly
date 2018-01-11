@@ -44,6 +44,8 @@ class Curl_Instance{
         size_t get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size);
         size_t post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size);
 
+        void set_timeout(const size_t &seconds);
+
     private:
         CURL *_curl_handle;
         CMemoryStruct _buffer;
