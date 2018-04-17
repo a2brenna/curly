@@ -94,6 +94,10 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){
 
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
+    if(res != CURLE_OK){
+        throw Curl_Error(0, res);
+    }
+
     const uint32_t response_code = [](CURL *handle){
         long response_code;
         curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -131,6 +135,10 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url, cons
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
+
+    if(res != CURLE_OK){
+        throw Curl_Error(0, res);
+    }
 
     const uint32_t response_code = [](CURL *handle){
         long response_code;
@@ -270,6 +278,10 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, con
     //fill up _buffer
     const CURLcode res = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
+
+    if(res != CURLE_OK){
+        throw Curl_Error(0, res);
+    }
 
     const uint32_t response_code = [](CURL *handle){
         long response_code;
