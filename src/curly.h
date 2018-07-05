@@ -48,6 +48,10 @@ class Curl_Instance{
 
     private:
         CURL *_curl_handle;
+        CURLcode _latest_CURLcode;
+        char _curl_error_buffer[CURL_ERROR_SIZE];
+
+
         CMemoryStruct _buffer;
 
 };

@@ -55,7 +55,7 @@ Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 		return buffer;
 	}(recv_buffer_size);
 
-    _curl_handle = [](struct CMemoryStruct *buffer) {
+    _curl_handle = [](struct CMemoryStruct *buffer, char *curl_error_buffer) {
         auto handle = curl_easy_init();
         curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
         curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
@@ -65,13 +65,16 @@ Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 
         curl_easy_setopt(handle, CURLOPT_SSL_SESSIONID_CACHE, 1);
 
+        /* set up buffer to provide error strings */
+        curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, curl_error_buffer);
+
         /* send all data to this function  */
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 
         /* we pass our 'chunk' struct to the callback function */
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)(buffer));
         return handle;
-    }(&_buffer);
+    }(&_buffer, _curl_error_buffer);
 
 }
 
@@ -93,9 +96,9 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){
     curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
     //fill up _buffer
-    const CURLcode res = curl_easy_perform(_curl_handle);
-    if(res != CURLE_OK){
-        throw Curl_Error(0, res);
+    _latest_CURLcode = curl_easy_perform(_curl_handle);
+    if(_latest_CURLcode != CURLE_OK){
+        throw Curl_Error(0, _latest_CURLcode);
     }
 
     const uint32_t response_code = [](CURL *handle){
@@ -133,11 +136,11 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url, cons
     curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
 
     //fill up _buffer
-    const CURLcode res = curl_easy_perform(_curl_handle);
+    _latest_CURLcode = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
 
-    if(res != CURLE_OK){
-        throw Curl_Error(0, res);
+    if(_latest_CURLcode != CURLE_OK){
+        throw Curl_Error(0, _latest_CURLcode);
     }
 
     const uint32_t response_code = [](CURL *handle){
@@ -177,16 +180,16 @@ size_t Curl_Instance::get(const std::string &url, const std::vector<std::pair<st
 		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
 
         //fill up _buffer
-        const CURLcode res = curl_easy_perform(_curl_handle);
+        _latest_CURLcode = curl_easy_perform(_curl_handle);
         curl_slist_free_all(http_headers);
 
-        if(res != CURLE_OK){
+        if(_latest_CURLcode != CURLE_OK){
             const auto response_code = [](CURL *handle){
                 long response_code;
                 curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
                 return response_code;
             }(_curl_handle);
-            throw Curl_Error(response_code, res);
+            throw Curl_Error(response_code, _latest_CURLcode);
         }
 
         const size_t bytes_fetched = _buffer.cursor;
@@ -231,16 +234,16 @@ size_t Curl_Instance::post(const std::string &url, const std::vector<std::pair<s
 		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
 
         //fill up _buffer
-        const CURLcode res = curl_easy_perform(_curl_handle);
+        _latest_CURLcode = curl_easy_perform(_curl_handle);
         curl_slist_free_all(http_headers);
 
-        if(res != CURLE_OK){
+        if(_latest_CURLcode != CURLE_OK){
             const auto response_code = [](CURL *handle){
                 long response_code;
                 curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
                 return response_code;
             }(_curl_handle);
-            throw Curl_Error(response_code, res);
+            throw Curl_Error(response_code, _latest_CURLcode);
         }
 
         const size_t bytes_fetched = _buffer.cursor;
@@ -276,11 +279,11 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, con
     curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
 
     //fill up _buffer
-    const CURLcode res = curl_easy_perform(_curl_handle);
+    _latest_CURLcode = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
 
-    if(res != CURLE_OK){
-        throw Curl_Error(0, res);
+    if(_latest_CURLcode != CURLE_OK){
+        throw Curl_Error(0, _latest_CURLcode);
     }
 
     const uint32_t response_code = [](CURL *handle){
