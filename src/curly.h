@@ -46,7 +46,7 @@ class Curl_Instance{
 
         void set_timeout(const size_t &seconds);
 
-        std::pair<CURLcode, const char *> error() const;
+        std::pair<std::string, std::string> error() const;
 
     private:
         CURL *_curl_handle;

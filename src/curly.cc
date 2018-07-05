@@ -300,8 +300,16 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, con
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
-std::pair<CURLcode, const char *> Curl_Instance::error() const{
-    return std::pair<CURLcode, const char *>(_latest_CURLcode, _curl_error_buffer);
+std::pair<std::string, std::string> Curl_Instance::error() const{
+    const std::string code(curl_easy_strerror(_latest_CURLcode));
+
+    //This rigamarole is because I don't want to trust that the _curl_error_buffer is in a valid state, i.e. null terminated, but it probably will be
+    char buff[CURL_ERROR_SIZE + 1];
+    buff[CURL_ERROR_SIZE] = '\0';
+    strncpy(buff, _curl_error_buffer, CURL_ERROR_SIZE);
+    const std::string error_buffer(buff);
+
+    return std::pair<std::string, std::string>(code, error_buffer);
 }
 
 Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
