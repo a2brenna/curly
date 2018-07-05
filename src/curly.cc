@@ -300,6 +300,10 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, con
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
+std::pair<CURLcode, const char *> Curl_Instance::error() const{
+    return std::pair<CURLcode, const char *>(_latest_CURLcode, _curl_error_buffer);
+}
+
 Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
     _response_code = response_code;
     _res = res;
