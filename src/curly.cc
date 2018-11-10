@@ -37,6 +37,27 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     return realsize;
 }
 
+CURL *setup_handle(struct CMemoryStruct *buffer, char *curl_error_buffer, const size_t &timeout){
+    auto handle = curl_easy_init();
+    curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L);
+    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, timeout);
+
+    curl_easy_setopt(handle, CURLOPT_SSL_SESSIONID_CACHE, 1);
+
+    /* set up buffer to provide error strings */
+    curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, curl_error_buffer);
+
+    /* send all data to this function  */
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
+    /* we pass our 'chunk' struct to the callback function */
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)(buffer));
+    return handle;
+}
+
 Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 	_buffer = [](const size_t &recv_buffer_size){
 		struct CMemoryStruct buffer;
@@ -55,36 +76,29 @@ Curl_Instance::Curl_Instance(const size_t &recv_buffer_size){
 		return buffer;
 	}(recv_buffer_size);
 
-    _curl_handle = [](struct CMemoryStruct *buffer, char *curl_error_buffer) {
-        auto handle = curl_easy_init();
-        curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1);
-        curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L);
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L);
-        curl_easy_setopt(handle, CURLOPT_TIMEOUT, 60);
+    _timeout = 60;
 
-        curl_easy_setopt(handle, CURLOPT_SSL_SESSIONID_CACHE, 1);
+    _curl_handle = setup_handle(&_buffer, _curl_error_buffer, _timeout);
 
-        /* set up buffer to provide error strings */
-        curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, curl_error_buffer);
-
-        /* send all data to this function  */
-        curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-
-        /* we pass our 'chunk' struct to the callback function */
-        curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *)(buffer));
-        return handle;
-    }(&_buffer, _curl_error_buffer);
-
+    return;
 }
 
 void Curl_Instance::set_timeout(const size_t &seconds){
-    curl_easy_setopt(_curl_handle, CURLOPT_TIMEOUT, seconds);
+    _timeout = seconds;
+    curl_easy_setopt(_curl_handle, CURLOPT_TIMEOUT, _timeout);
+    return;
+}
+
+void Curl_Instance::reset(){
+    curl_easy_cleanup(_curl_handle);
+    _curl_handle = setup_handle(&_buffer, _curl_error_buffer, _timeout);
+    return;
 }
 
 Curl_Instance::~Curl_Instance() {
     free(_buffer.memory);
     curl_easy_cleanup(_curl_handle);
+    return;
 }
 
 std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){

@@ -46,6 +46,8 @@ class Curl_Instance{
 
         void set_timeout(const size_t &seconds);
 
+        void reset();
+
         std::pair<std::string, std::string> error() const;
 
     private:
@@ -53,7 +55,7 @@ class Curl_Instance{
         CURLcode _latest_CURLcode;
         char _curl_error_buffer[CURL_ERROR_SIZE];
 
-
+        size_t _timeout = 60;
         CMemoryStruct _buffer;
 
 };
