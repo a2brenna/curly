@@ -5,6 +5,13 @@
 #include <string.h>
 #include <jsoncpp/json/reader.h>
 
+uint32_t get_response_code(CURL *handle){
+    long response_code;
+    curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+    assert(response_code >= 0);
+    return (uint32_t)response_code;
+}
+
 namespace curly {
 
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
@@ -111,20 +118,8 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url){
 
     //fill up _buffer
     _latest_CURLcode = curl_easy_perform(_curl_handle);
-    if(_latest_CURLcode != CURLE_OK){
-        throw Curl_Error(0, _latest_CURLcode);
-    }
 
-    const uint32_t response_code = [](CURL *handle){
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-        if(response_code >= 0){
-            return (uint32_t)response_code;
-        }
-        else{
-            assert(false);
-        }
-    }(_curl_handle);
+    const uint32_t response_code = get_response_code(_curl_handle);
 
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
@@ -153,121 +148,84 @@ std::pair<uint32_t, std::string> Curl_Instance::get(const std::string &url, cons
     _latest_CURLcode = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
 
-    if(_latest_CURLcode != CURLE_OK){
-        throw Curl_Error(0, _latest_CURLcode);
-    }
-
-    const uint32_t response_code = [](CURL *handle){
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-        if(response_code >= 0){
-            return (uint32_t)response_code;
-        }
-        else{
-            assert(false);
-        }
-    }(_curl_handle);
+    const uint32_t response_code = get_response_code(_curl_handle);
 
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
 
-size_t Curl_Instance::get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
+std::pair<uint32_t, size_t> Curl_Instance::get(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
-    try{
-        _buffer.resizable = false;
-        _buffer.memory = target;
-        _buffer.cursor = 0;
-        _buffer.size = target_size;
 
-        //set url
-        curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
+    _buffer.resizable = false;
+    _buffer.memory = target;
+    _buffer.cursor = 0;
+    _buffer.size = target_size;
 
-		struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
-			struct curl_slist *http_headers = nullptr;
-			for(const auto &h: headers){
-				const std::string header = h.first + ": " + h.second;
-				http_headers = curl_slist_append(http_headers, header.c_str());
-			}
-			return http_headers;
-		}(headers);
+    //set url
+    curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
-		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
-
-        //fill up _buffer
-        _latest_CURLcode = curl_easy_perform(_curl_handle);
-        curl_slist_free_all(http_headers);
-
-        if(_latest_CURLcode != CURLE_OK){
-            const auto response_code = [](CURL *handle){
-                long response_code;
-                curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-                return response_code;
-            }(_curl_handle);
-            throw Curl_Error(response_code, _latest_CURLcode);
+    struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
+        struct curl_slist *http_headers = nullptr;
+        for(const auto &h: headers){
+            const std::string header = h.first + ": " + h.second;
+            http_headers = curl_slist_append(http_headers, header.c_str());
         }
+        return http_headers;
+    }(headers);
 
-        const size_t bytes_fetched = _buffer.cursor;
-        _buffer = old_buffer;
-        return bytes_fetched;
-    }
-    catch(...){
-        _buffer = old_buffer;
-        throw;
-    }
+    curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
+
+    //fill up _buffer
+    _latest_CURLcode = curl_easy_perform(_curl_handle);
+    curl_slist_free_all(http_headers);
+
+    const uint32_t response_code = get_response_code(_curl_handle);
+
+    const size_t bytes_fetched = _buffer.cursor;
+    _buffer = old_buffer;
+    return std::pair<uint32_t, size_t>(response_code, bytes_fetched);
 }
 
-size_t Curl_Instance::get(const std::string &url, char *target, const size_t &target_size){
+std::pair<uint32_t, size_t> Curl_Instance::get(const std::string &url, char *target, const size_t &target_size){
     const std::vector<std::pair< std::string, std::string>> headers;
     return get(url, headers, target, target_size);
 }
 
-size_t Curl_Instance::post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
+std::pair<uint32_t, size_t> Curl_Instance::post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters, char *target, const size_t &target_size){
     const auto old_buffer = _buffer;
-    try{
-        _buffer.resizable = false;
-        _buffer.memory = target;
-        _buffer.cursor = 0;
-        _buffer.size = target_size;
 
-        //set url
-        curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
+    _buffer.resizable = false;
+    _buffer.memory = target;
+    _buffer.cursor = 0;
+    _buffer.size = target_size;
 
-		struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
-			struct curl_slist *http_headers = nullptr;
-			for(const auto &h: headers){
-				const std::string header = h.first + ": " + h.second;
-				http_headers = curl_slist_append(http_headers, header.c_str());
-			}
-			return http_headers;
-		}(headers);
+    //set url
+    curl_easy_setopt(_curl_handle, CURLOPT_URL, url.c_str());
 
-		curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
-
-		curl_easy_setopt(_curl_handle, CURLOPT_POST, 1L);
-		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDS, post_parameters.c_str());
-		curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
-
-        //fill up _buffer
-        _latest_CURLcode = curl_easy_perform(_curl_handle);
-        curl_slist_free_all(http_headers);
-
-        if(_latest_CURLcode != CURLE_OK){
-            const auto response_code = [](CURL *handle){
-                long response_code;
-                curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-                return response_code;
-            }(_curl_handle);
-            throw Curl_Error(response_code, _latest_CURLcode);
+    struct curl_slist *http_headers = [](const std::vector<std::pair<std::string, std::string>> &headers){
+        struct curl_slist *http_headers = nullptr;
+        for(const auto &h: headers){
+            const std::string header = h.first + ": " + h.second;
+            http_headers = curl_slist_append(http_headers, header.c_str());
         }
+        return http_headers;
+    }(headers);
 
-        const size_t bytes_fetched = _buffer.cursor;
-        _buffer = old_buffer;
-        return bytes_fetched;
-    }
-    catch(...){
-        _buffer = old_buffer;
-        throw;
-    }
+    curl_easy_setopt(_curl_handle, CURLOPT_HTTPHEADER, http_headers);
+
+    curl_easy_setopt(_curl_handle, CURLOPT_POST, 1L);
+    curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDS, post_parameters.c_str());
+    curl_easy_setopt(_curl_handle, CURLOPT_POSTFIELDSIZE, post_parameters.size());
+
+    //fill up _buffer
+    _latest_CURLcode = curl_easy_perform(_curl_handle);
+    curl_slist_free_all(http_headers);
+
+    const uint32_t response_code = get_response_code(_curl_handle);
+
+    const size_t bytes_fetched = _buffer.cursor;
+    _buffer = old_buffer;
+    return std::pair<uint32_t, size_t>(response_code, bytes_fetched);
 }
 
 std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, const std::vector<std::pair<std::string, std::string>> &headers, const std::string &post_parameters){
@@ -296,20 +254,7 @@ std::pair<uint32_t, std::string> Curl_Instance::post(const std::string &url, con
     _latest_CURLcode = curl_easy_perform(_curl_handle);
     curl_slist_free_all(http_headers);
 
-    if(_latest_CURLcode != CURLE_OK){
-        throw Curl_Error(0, _latest_CURLcode);
-    }
-
-    const uint32_t response_code = [](CURL *handle){
-        long response_code;
-        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-        if(response_code >= 0){
-            return (uint32_t)response_code;
-        }
-        else{
-            assert(false);
-        }
-    }(_curl_handle);
+    const uint32_t response_code = get_response_code(_curl_handle);
 
     return std::pair<uint32_t, std::string>(response_code, std::string(&(_buffer.memory[0]), _buffer.cursor));
 }
@@ -324,23 +269,6 @@ std::pair<std::string, std::string> Curl_Instance::error() const{
     const std::string error_buffer(buff);
 
     return std::pair<std::string, std::string>(code, error_buffer);
-}
-
-Curl_Error::Curl_Error(const long &response_code, const CURLcode &res){
-    _response_code = response_code;
-    _res = res;
-}
-
-long Curl_Error::response_code() const{
-    return _response_code;
-}
-
-CURLcode Curl_Error::res() const{
-    return _res;
-}
-
-std::string Curl_Error::str() const{
-    return std::string(curl_easy_strerror(_res));
 }
 
 }
