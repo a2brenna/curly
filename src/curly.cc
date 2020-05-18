@@ -3,7 +3,6 @@
 #include <cassert>
 #include <unistd.h>
 #include <string.h>
-#include <jsoncpp/json/reader.h>
 
 uint32_t get_response_code(CURL *handle){
     long response_code;
