@@ -20,7 +20,7 @@ libraries: libcurly.so libcurly.a
 headers: src/curly.h
 
 benchmark: benchmark.o curly.o
-	${CXX} ${CXXFLAGS} -o benchmark benchmark.o curly.o -lboost_program_options -lcurl -ljsoncpp
+	${CXX} ${CXXFLAGS} -o benchmark benchmark.o curly.o -lboost_program_options -lcurl
 
 libcurly.so: curly.o
 	${CXX} ${CXXFLAGS} -shared -Wl,-soname,libcurly.so -o libcurly.so curly.o
